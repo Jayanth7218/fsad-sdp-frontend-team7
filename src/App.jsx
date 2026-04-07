@@ -9,7 +9,9 @@ import Signup from "./pages/Signup";
 
 // Admin Pages
 import AdminNavbar from "./components/AdminNavbar";
+import FacultyNavbar from "./components/FacultyNavbar";
 import Dashboard from "./pages/admin/Dashboard";
+import AddFaculty from "./pages/admin/AddFaculty";
 import StudentDetails from "./pages/admin/AddStudent";
 import AddStudent from "./pages/admin/AddStudent"; // alias for backwards compatibility
 import Subjects from "./pages/admin/AddSubject"; // renamed component
@@ -43,6 +45,7 @@ function App() {
     <BrowserRouter>
       {/* Conditional Navbar */}
       {user?.userType === "admin" && <AdminNavbar />}
+      {user?.userType === "lecturer" && <FacultyNavbar />}
       {user?.userType === "student" && <StudentNavbar />}
 
       <Routes>
@@ -61,6 +64,14 @@ function App() {
           }
         />
         <Route
+          path="/admin/lecturers"
+          element={
+            <ProtectedRoute userType="admin">
+              <AddFaculty />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/admin/students"
           element={
             <ProtectedRoute userType="admin">
@@ -69,25 +80,51 @@ function App() {
           }
         />
         <Route
-          path="/admin/subjects"
+          path="/admin/reports"
           element={
             <ProtectedRoute userType="admin">
+              <Reports />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Lecturer Routes */}
+        <Route
+          path="/lecturer/dashboard"
+          element={
+            <ProtectedRoute userType="lecturer">
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/lecturer/students"
+          element={
+            <ProtectedRoute userType="lecturer">
+              <StudentDetails />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/lecturer/subjects"
+          element={
+            <ProtectedRoute userType="lecturer">
               <Subjects />
             </ProtectedRoute>
           }
         />
         <Route
-          path="/admin/marks"
+          path="/lecturer/marks"
           element={
-            <ProtectedRoute userType="admin">
+            <ProtectedRoute userType="lecturer">
               <StudentMarksPage />
             </ProtectedRoute>
           }
         />
         <Route
-          path="/admin/reports"
+          path="/lecturer/reports"
           element={
-            <ProtectedRoute userType="admin">
+            <ProtectedRoute userType="lecturer">
               <Reports />
             </ProtectedRoute>
           }

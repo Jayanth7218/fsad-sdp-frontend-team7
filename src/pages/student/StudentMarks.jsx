@@ -6,17 +6,35 @@ function StudentMarks() {
   const { user } = useContext(AppContext);
   const [currentStudent, setCurrentStudent] = useState(null);
 
-  useEffect(() => {
-    // Always fetch fresh student data from localStorage to get latest marks
-    if (user?.id) {
-      const students = JSON.parse(localStorage.getItem("students")) || [];
-      const fresh = students.find(s => s.id === user.id);
-      if (fresh) {
-        setCurrentStudent(fresh);
-      } else {
-        setCurrentStudent(user);
-      }
+  const getUserId = () => String(user?.id ?? user?._id ?? "");
+  const getStudentId = (student) => String(student?.id ?? student?._id ?? "");
+
+  const loadCurrentStudent = () => {
+    const userId = getUserId();
+    if (!userId) {
+      setCurrentStudent(user);
+      return;
     }
+
+    const students = JSON.parse(localStorage.getItem("students")) || [];
+    const fresh = students.find((s) => getStudentId(s) === userId);
+    if (fresh) {
+      setCurrentStudent(fresh);
+    } else {
+      setCurrentStudent(user);
+    }
+  };
+
+  useEffect(() => {
+    loadCurrentStudent();
+  }, [user]);
+
+  useEffect(() => {
+    const handleStorage = () => {
+      loadCurrentStudent();
+    };
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
   }, [user]);
 
   const calculateGrade = (marks) => {

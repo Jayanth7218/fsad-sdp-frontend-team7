@@ -1,40 +1,157 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
+import { AppContext } from "../../context/AppContext";
+import {
+  getAllStudents,
+  getAllSubjects,
+  getSubjectsByFaculty,
+  getMarksBySubject,
+  addMarks,
+} from "../../services/api";
 import "../../styles/forms.css";
 
 function StudentMarksPage() {
+  const { user } = useContext(AppContext);
   const [students, setStudents] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [selectedStudent, setSelectedStudent] = useState("");
   const [selectedSubject, setSelectedSubject] = useState("");
   const [marks, setMarks] = useState("");
   const [improvementSuggestion, setImprovementSuggestion] = useState("");
+  const [subjectMarks, setSubjectMarks] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const getStudentKey = (student) => student.id ?? student._id ?? student.studentId ?? String(student.name);
+  const getStudentId = (student) => String(student.id ?? student._id ?? student.studentId ?? "");
 
   useEffect(() => {
-    setStudents(JSON.parse(localStorage.getItem("students")) || []);
-    setSubjects(JSON.parse(localStorage.getItem("subjects")) || []);
+    fetchStudents();
+    fetchSubjects();
   }, []);
 
-  const handleSubmit = (e) => {
+  const fetchStudents = async () => {
+    setLoading(true);
+    const result = await getAllStudents();
+    let studentData = [];
+
+    if (result.success && Array.isArray(result.data) && result.data.length > 0) {
+      studentData = result.data;
+    } else {
+      studentData = JSON.parse(localStorage.getItem("students")) || [];
+      if (!result.success && studentData.length === 0) {
+        setError(result.error || "Unable to load students");
+      }
+    }
+
+    setStudents(studentData);
+    setLoading(false);
+  };
+
+  const fetchSubjects = async () => {
+    setLoading(true);
+    let result;
+
+    if (user?.userType === "lecturer" && user?.id) {
+      result = await getSubjectsByFaculty(user.id);
+      if (!result.success) {
+        result = await getAllSubjects();
+      }
+    } else {
+      result = await getAllSubjects();
+    }
+
+    let subjectData = [];
+    if (result.success && Array.isArray(result.data) && result.data.length > 0) {
+      subjectData = result.data;
+    } else {
+      subjectData = JSON.parse(localStorage.getItem("subjects")) || [];
+      if (!result.success && subjectData.length === 0) {
+        setError(result.error || "Unable to load subjects");
+      }
+    }
+
+    setSubjects(subjectData);
+    setLoading(false);
+  };
+
+  const fetchMarksForSubject = async (subjectId) => {
+    if (!subjectId) {
+      setSubjectMarks([]);
+      return;
+    }
+
+    setLoading(true);
+    const result = await getMarksBySubject(subjectId);
+    if (result.success && Array.isArray(result.data)) {
+      const filtered = result.data.map((item) => ({
+        studentName:
+          item.studentName ||
+          item.student?.name ||
+          item.name ||
+          item.studentName ||
+          "Unknown",
+        subjectName:
+          item.subject || item.subjectName || item.subjectTitle || subjectId,
+        obtainedMarks:
+          item.score || item.marksObtained || item.obtainedMarks || item.marks || 0,
+        maxMarks: 100,
+        improvementSuggestion: item.improvementSuggestion || item.note || "",
+      }));
+      setSubjectMarks(filtered);
+    } else {
+      setSubjectMarks([]);
+      if (!result.success) {
+        setError(result.error || "Unable to load marks for selected subject");
+      }
+    }
+    setLoading(false);
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
+
+    if (!selectedStudent || !selectedSubject) {
+      setError("Please select both student and subject before submitting.");
+      return;
+    }
+
+    const parsedStudentId = Number(selectedStudent);
+    const parsedSubjectId = Number(selectedSubject);
+
+    const payload = {
+      student: {
+        id: Number.isNaN(parsedStudentId) ? selectedStudent : parsedStudentId,
+      },
+      subject: {
+        id: Number.isNaN(parsedSubjectId) ? selectedSubject : parsedSubjectId,
+      },
+      marksObtained: Number(marks),
+      maxMarks: 100,
+    };
+
+    const result = await addMarks(payload);
+    if (!result.success) {
+      setError(result.error || "Failed to save marks to server.");
+      return;
+    }
 
     const updatedStudents = students.map((student) => {
-      if (student.id === Number(selectedStudent)) {
+      const studentId = String(student.id ?? student._id ?? student.studentId ?? "");
+      if (studentId === String(selectedStudent)) {
         const newMark = {
           subject: selectedSubject,
-          score: Number(marks)
+          score: Number(marks),
+          improvementSuggestion: Number(marks) < 50 ? improvementSuggestion : "",
         };
-        // Add improvement suggestion only if marks < 50
-        if (Number(marks) < 50) {
-          newMark.improvementSuggestion = improvementSuggestion;
-        }
-        student.marks.push(newMark);
+        student.marks = student.marks ? [...student.marks, newMark] : [newMark];
       }
       return student;
     });
 
     localStorage.setItem("students", JSON.stringify(updatedStudents));
     setStudents(updatedStudents);
-    alert("Marks Added Successfully!");
+    alert("Marks added successfully.");
     setSelectedStudent("");
     setSelectedSubject("");
     setMarks("");
@@ -44,14 +161,16 @@ function StudentMarksPage() {
   // aggregate marks for table
   const marksList = [];
   students.forEach((s) => {
-    s.marks.forEach((m) => {
-      marksList.push({ 
-        student: s.name, 
-        subject: m.subject, 
-        score: m.score,
-        improvementSuggestion: m.improvementSuggestion || ""
+    if (Array.isArray(s.marks)) {
+      s.marks.forEach((m) => {
+        marksList.push({ 
+          student: s.name, 
+          subject: m.subject, 
+          score: m.score,
+          improvementSuggestion: m.improvementSuggestion || ""
+        });
       });
-    });
+    }
   });
 
   return (
@@ -59,7 +178,33 @@ function StudentMarksPage() {
       <div className="page-grid">
         <div className="listing-card card">
           <h2>Student Marks</h2>
-          {marksList.length > 0 ? (
+          {error && <div className="error-message">{error}</div>}
+          {selectedSubject && subjectMarks.length > 0 ? (
+            <table className="list-table">
+              <thead>
+                <tr>
+                  <th>Student Name</th>
+                  <th>Subject</th>
+                  <th>Max Marks</th>
+                  <th>Obtained Marks</th>
+                  <th>Suggestion</th>
+                </tr>
+              </thead>
+              <tbody>
+                {subjectMarks.map((m, idx) => (
+                  <tr key={idx}>
+                    <td>{m.studentName}</td>
+                    <td>{m.subjectName}</td>
+                    <td>{m.maxMarks}</td>
+                    <td>{m.obtainedMarks}</td>
+                    <td>{m.improvementSuggestion || "--"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : selectedSubject ? (
+            <p>No marks found for the selected subject.</p>
+          ) : marksList.length > 0 ? (
             <table className="list-table">
               <thead>
                 <tr>
@@ -127,9 +272,12 @@ function StudentMarksPage() {
                 required
               >
                 <option value="">-- Choose a student --</option>
-                {students.map((s) => (
-                  <option key={s.id} value={s.id}>{s.name}</option>
-                ))}
+                {students.map((s) => {
+                  const studentValue = getStudentId(s) || s.name;
+                  return (
+                    <option key={studentValue} value={studentValue}>{s.name}</option>
+                  );
+                })}
               </select>
             </div>
 
@@ -138,13 +286,23 @@ function StudentMarksPage() {
               <select
                 id="subject"
                 value={selectedSubject}
-                onChange={(e) => setSelectedSubject(e.target.value)}
+                onChange={(e) => {
+                  const subject = e.target.value;
+                  setSelectedSubject(subject);
+                  fetchMarksForSubject(subject);
+                }}
                 required
               >
                 <option value="">-- Choose a subject --</option>
-                {subjects.map((sub, i) => (
-                  <option key={i} value={sub}>{sub}</option>
-                ))}
+                {subjects.map((sub, i) => {
+                  const subjectLabel = typeof sub === "string" ? sub : sub.subjectName || sub.subjectCode || sub.name || `Subject ${i + 1}`;
+                  const subjectValue = typeof sub === "string" ? sub : String(sub.id ?? sub._id ?? sub.subjectId ?? subjectLabel);
+                  return (
+                    <option key={subjectValue} value={subjectValue}>
+                      {subjectLabel}
+                    </option>
+                  );
+                })}
               </select>
             </div>
 

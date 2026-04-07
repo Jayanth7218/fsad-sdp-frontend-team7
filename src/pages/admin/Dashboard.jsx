@@ -23,7 +23,7 @@ function AdminDashboard() {
     setSubjects(sub);
 
     // overall average across all marks
-    const allMarks = s.flatMap((st) => st.marks.map((m) => m.score));
+    const allMarks = s.flatMap((st) => (st.marks || []).map((m) => m.score));
     let overall = 0;
     if (allMarks.length > 0) {
       overall = Math.round(allMarks.reduce((a, b) => a + b, 0) / allMarks.length);
@@ -33,7 +33,7 @@ function AdminDashboard() {
     // compute average per subject
     const subjectAverages = sub.map((subj) => {
       const marksForSubj = s
-        .flatMap((st) => st.marks)
+        .flatMap((st) => (st.marks || []))
         .filter((m) => m.subject === subj)
         .map((m) => m.score);
       const avg =

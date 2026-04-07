@@ -1,21 +1,42 @@
 import { useState, useEffect } from "react";
+import { getAllStudents, deleteStudent } from "../../services/api";
 import "../../styles/forms.css";
 
 function StudentDetails() {
   const [students, setStudents] = useState([]);
-  const [student, setStudent] = useState({ name: "", email: "", password: "" });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   useEffect(() => {
-    setStudents(JSON.parse(localStorage.getItem("students")) || []);
+    fetchStudents();
   }, []);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const existing = JSON.parse(localStorage.getItem("students")) || [];
-    existing.push({ ...student, id: Date.now(), marks: [] });
-    localStorage.setItem("students", JSON.stringify(existing));
-    setStudents(existing);
-    setStudent({ name: "", email: "", password: "" });
+  const fetchStudents = async () => {
+    setLoading(true);
+    const result = await getAllStudents();
+    if (result.success) {
+      setStudents(result.data);
+    } else {
+      setError(result.error || "Failed to fetch students");
+    }
+    setLoading(false);
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this student?")) {
+      return;
+    }
+
+    setLoading(true);
+    const result = await deleteStudent(id);
+    if (result.success) {
+      setSuccess(result.message || "Student deleted successfully");
+      fetchStudents();
+    } else {
+      setError(result.error || "Failed to delete student");
+    }
+    setLoading(false);
   };
 
   return (
@@ -23,13 +44,15 @@ function StudentDetails() {
       <div className="page-grid">
         <div className="listing-card card">
           <h2>Students</h2>
+          {error && <div className="error-message">{error}</div>}
+          {success && <div className="success-message">{success}</div>}
           {students.length > 0 ? (
             <table className="list-table">
               <thead>
                 <tr>
                   <th>Name</th>
                   <th>Email</th>
-                  <th>Registered</th>
+                  <th>Contact</th>
                   <th>Action</th>
                 </tr>
               </thead>
@@ -38,15 +61,12 @@ function StudentDetails() {
                   <tr key={s.id}>
                     <td>{s.name}</td>
                     <td>{s.email}</td>
-                    <td>{new Date(s.id).toLocaleDateString()}</td>
+                    <td>{s.contact || "N/A"}</td>
                     <td>
                       <button
                         className="btn-danger"
-                        onClick={() => {
-                          const filtered = students.filter((x) => x.id !== s.id);
-                          setStudents(filtered);
-                          localStorage.setItem("students", JSON.stringify(filtered));
-                        }}
+                        onClick={() => handleDelete(s.id)}
+                        disabled={loading}
                       >
                         Delete
                       </button>
@@ -56,47 +76,16 @@ function StudentDetails() {
               </tbody>
             </table>
           ) : (
-            <p>No students added yet.</p>
+            <p>{loading ? "Loading students..." : "No students registered yet."}</p>
           )}
         </div>
         <div className="form-wrapper card">
-          <h2 className="form-title">👤 Add Student</h2>
-          <form onSubmit={handleSubmit} className="form">
-            <div className="form-group">
-              <label htmlFor="name">Full Name</label>
-              <input
-                id="name"
-                type="text"
-                placeholder="Enter student name"
-                value={student.name}
-                onChange={(e) => setStudent({ ...student, name: e.target.value })}
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="email">Email Address</label>
-              <input
-                id="email"
-                type="email"
-                placeholder="Enter email address"
-                value={student.email}
-                onChange={(e) => setStudent({ ...student, email: e.target.value })}
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="password">Password</label>
-              <input
-                id="password"
-                type="password"
-                placeholder="Enter password"
-                value={student.password}
-                onChange={(e) => setStudent({ ...student, password: e.target.value })}
-                required
-              />
-            </div>
-            <button type="submit" className="btn-primary form-submit">Add Student</button>
-          </form>
+          <h2 className="form-title">📚 Students Information</h2>
+          <p>Students can register themselves through the signup page.</p>
+          <p>You can view and manage registered students in the list above.</p>
+          <button onClick={fetchStudents} className="btn-primary form-submit" disabled={loading}>
+            {loading ? "Refreshing..." : "Refresh Student List"}
+          </button>
         </div>
       </div>
     </div>

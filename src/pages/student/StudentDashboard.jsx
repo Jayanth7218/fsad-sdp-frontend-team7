@@ -1,5 +1,6 @@
 import { useContext, useState, useEffect } from "react";
 import { AppContext } from "../../context/AppContext";
+import { getAllSubjects } from "../../services/api";
 import {
   BarChart,
   Bar,
@@ -18,25 +19,64 @@ function StudentDashboard() {
   const { user } = useContext(AppContext);
   const [chartData, setChartData] = useState([]);
   const [currentStudent, setCurrentStudent] = useState(null);
+  const [subjects, setSubjects] = useState([]);
+  const [subjectError, setSubjectError] = useState("");
+
+  const getUserId = () => String(user?.id ?? user?._id ?? "");
+  const getStudentId = (student) => String(student?.id ?? student?._id ?? "");
+
+  const loadCurrentStudent = () => {
+    const userId = getUserId();
+    if (!userId) {
+      setCurrentStudent(user);
+      return;
+    }
+
+    const students = JSON.parse(localStorage.getItem("students")) || [];
+    const fresh = students.find((s) => getStudentId(s) === userId);
+    if (fresh) {
+      setCurrentStudent(fresh);
+    } else {
+      setCurrentStudent(user);
+    }
+  };
 
   useEffect(() => {
-    // Fetch fresh student data from localStorage
-    if (user?.id) {
-      const students = JSON.parse(localStorage.getItem("students")) || [];
-      const fresh = students.find(s => s.id === user.id);
-      if (fresh) {
-        setCurrentStudent(fresh);
-      } else {
-        setCurrentStudent(user);
+    loadCurrentStudent();
+  }, [user]);
+
+  useEffect(() => {
+    loadSubjects();
+  }, []);
+
+  useEffect(() => {
+    const handleStorage = () => {
+      loadCurrentStudent();
+      loadSubjects();
+    };
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, [user]);
+
+  const loadSubjects = async () => {
+    setSubjectError("");
+    const result = await getAllSubjects();
+    if (result.success && Array.isArray(result.data)) {
+      setSubjects(result.data);
+    } else {
+      const fallback = JSON.parse(localStorage.getItem("subjects")) || [];
+      setSubjects(fallback);
+      if (!result.success && fallback.length === 0) {
+        setSubjectError(result.error || "Unable to load available subjects.");
       }
     }
-  }, [user]);
+  };
 
   useEffect(() => {
     // Prepare chart data (subject-wise marks)
     if (currentStudent?.marks?.length > 0) {
       const subjectData = {};
-      currentStudent.marks.forEach(m => {
+      currentStudent.marks.forEach((m) => {
         if (!subjectData[m.subject]) {
           subjectData[m.subject] = [];
         }
@@ -48,6 +88,8 @@ function StudentDashboard() {
         average: Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
       }));
       setChartData(data);
+    } else {
+      setChartData([]);
     }
   }, [currentStudent]);
 
@@ -151,6 +193,24 @@ function StudentDashboard() {
             </div>
           </div>
         )}
+
+        <div className="card">
+          <h3>Available Subjects</h3>
+          {subjectError && <div className="error-message">{subjectError}</div>}
+          {subjects.length > 0 ? (
+            <ul style={{ marginTop: "1rem", paddingLeft: "1.2rem" }}>
+              {subjects.map((sub, idx) => {
+                const label =
+                  typeof sub === "string"
+                    ? sub
+                    : sub.subjectName || sub.name || sub.subjectCode || `Subject ${idx + 1}`;
+                return <li key={sub.id ?? sub.subjectCode ?? idx}>{label}</li>;
+              })}
+            </ul>
+          ) : (
+            <p style={{ color: "#6b7280", marginTop: "1rem" }}>No subjects are available yet.</p>
+          )}
+        </div>
 
         <div className="card">
           <h3>Your Marks</h3>

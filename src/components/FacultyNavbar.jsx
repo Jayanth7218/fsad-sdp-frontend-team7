@@ -3,7 +3,7 @@ import { useContext } from "react";
 import { AppContext } from "../context/AppContext";
 import "../styles/navbar.css";
 
-function AdminNavbar() {
+function FacultyNavbar() {
   const navigate = useNavigate();
   const { user, logout } = useContext(AppContext);
 
@@ -16,13 +16,14 @@ function AdminNavbar() {
     <nav className="navbar">
       <div className="navbar-container">
         <div className="navbar-brand">
-          <h3 className="navbar-title">📊 Admin Panel</h3>
+          <h3 className="navbar-title">📚 Faculty Panel</h3>
         </div>
         <div className="navbar-links">
-          <Link to="/admin/dashboard" className="nav-link">Dashboard</Link>
-          <Link to="/admin/lecturers" className="nav-link">Faculty</Link>
-          <Link to="/admin/students" className="nav-link">Student Details</Link>
-          <Link to="/admin/reports" className="nav-link">Reports</Link>
+          <Link to="/lecturer/dashboard" className="nav-link">Dashboard</Link>
+          <Link to="/lecturer/students" className="nav-link">Student Details</Link>
+          <Link to="/lecturer/subjects" className="nav-link">Subjects</Link>
+          <Link to="/lecturer/marks" className="nav-link">Student Marks</Link>
+          <Link to="/lecturer/reports" className="nav-link">Reports</Link>
         </div>
         <div className="navbar-user">
           <span className="user-info">{user?.email}</span>
@@ -33,4 +34,4 @@ function AdminNavbar() {
   );
 }
 
-export default AdminNavbar;
+export default FacultyNavbar;

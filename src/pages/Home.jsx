@@ -9,7 +9,7 @@ function Home() {
       {/* Navigation Bar for Home */}
       <nav className="home-navbar">
         <div className="home-navbar-content">
-          <h1 className="home-logo">📊 Marks Analysis System</h1>
+          <h1 className="home-logo">📊 Student Performance Analysis System</h1>
           <div className="home-nav-buttons">
             <button className="btn-login" onClick={() => navigate("/login")}>
               Login
@@ -24,7 +24,7 @@ function Home() {
       {/* Hero Section */}
       <section className="hero">
         <div className="hero-content">
-          <h2 className="hero-title">Welcome to Marks Analysis System</h2>
+          <h2 className="hero-title">Welcome to Student Performance Analysis System</h2>
           <p className="hero-subtitle">
             A comprehensive platform for tracking student performance and generating insightful reports
           </p>

@@ -1,23 +1,86 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
+import { AppContext } from "../../context/AppContext";
+import { addSubject, getSubjectsByFaculty, getAllSubjects } from "../../services/api";
 import "../../styles/forms.css";
 
 function Subjects() {
+  const { user } = useContext(AppContext);
   const [subjects, setSubjects] = useState([]);
-  const [subject, setSubject] = useState("");
+  const [subjectName, setSubjectName] = useState("");
+  const [subjectCode, setSubjectCode] = useState("");
+  const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    setSubjects(JSON.parse(localStorage.getItem("subjects")) || []);
-  }, []);
+    loadSubjects();
+  }, [user]);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const existing = JSON.parse(localStorage.getItem("subjects")) || [];
-    if (subject.trim()) {
-      existing.push(subject.trim());
-      localStorage.setItem("subjects", JSON.stringify(existing));
-      setSubjects(existing);
-      setSubject("");
+  const loadSubjects = async () => {
+    setLoading(true);
+    setError("");
+
+    let result;
+    if (user?.userType === "lecturer" && user?.id) {
+      result = await getSubjectsByFaculty(user.id);
+      if (!result.success) {
+        result = await getAllSubjects();
+      }
+    } else {
+      result = await getAllSubjects();
     }
+
+    if (result.success && Array.isArray(result.data)) {
+      setSubjects(result.data);
+    } else {
+      const stored = JSON.parse(localStorage.getItem("subjects")) || [];
+      setSubjects(stored);
+      if (!result.success && stored.length === 0) {
+        setError(result.error || "Unable to load subjects.");
+      }
+    }
+
+    setLoading(false);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    setSuccessMessage("");
+
+    if (!subjectName.trim() || !subjectCode.trim()) {
+      setError("Please provide both subject name and code.");
+      return;
+    }
+
+    const facultyId = user?.id ?? user?._id;
+    if (!facultyId) {
+      setError("Faculty must be logged in to add a subject.");
+      return;
+    }
+
+    const payload = {
+      subjectName: subjectName.trim(),
+      subjectCode: subjectCode.trim(),
+      faculty: {
+        id: Number(facultyId) || facultyId,
+      },
+    };
+
+    setLoading(true);
+    const result = await addSubject(payload);
+    setLoading(false);
+
+    if (!result.success) {
+      setError(result.error || "Failed to add subject.");
+      return;
+    }
+
+    const newSubject = result.data || payload;
+    setSubjects((prev) => [...prev, newSubject]);
+    setSubjectName("");
+    setSubjectCode("");
+    setSuccessMessage("Subject added successfully.");
   };
 
   return (
@@ -27,21 +90,13 @@ function Subjects() {
           <h2>Subjects</h2>
           {subjects.length > 0 ? (
             <ul className="list-simple">
-              {subjects.map((sub, i) => (
-                <li key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span>{sub}</span>
-                  <button
-                    className="btn-danger"
-                    onClick={() => {
-                      const filtered = subjects.filter((x) => x !== sub);
-                      setSubjects(filtered);
-                      localStorage.setItem("subjects", JSON.stringify(filtered));
-                    }}
-                  >
-                    Delete
-                  </button>
-                </li>
-              ))}
+              {subjects.map((sub, i) => {
+                const label =
+                  typeof sub === "string"
+                    ? sub
+                    : `${sub.subjectName || sub.name || "Untitled"}${sub.subjectCode ? ` (${sub.subjectCode})` : ""}`;
+                return <li key={sub.id ?? sub.subjectCode ?? i}>{label}</li>;
+              })}
             </ul>
           ) : (
             <p>No subjects added yet.</p>
@@ -49,19 +104,34 @@ function Subjects() {
         </div>
         <div className="form-wrapper card" style={{ maxWidth: "500px" }}>
           <h2 className="form-title">📚 Add Subject</h2>
+          {error && <div className="error-message">{error}</div>}
+          {successMessage && <div className="success-message">{successMessage}</div>}
           <form onSubmit={handleSubmit} className="form">
             <div className="form-group">
-              <label htmlFor="subject">Subject Name</label>
+              <label htmlFor="subjectName">Subject Name</label>
               <input
-                id="subject"
+                id="subjectName"
                 type="text"
                 placeholder="Enter subject name"
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
+                value={subjectName}
+                onChange={(e) => setSubjectName(e.target.value)}
                 required
               />
             </div>
-            <button type="submit" className="btn-primary form-submit">Add Subject</button>
+            <div className="form-group">
+              <label htmlFor="subjectCode">Subject Code</label>
+              <input
+                id="subjectCode"
+                type="text"
+                placeholder="Enter subject code"
+                value={subjectCode}
+                onChange={(e) => setSubjectCode(e.target.value)}
+                required
+              />
+            </div>
+            <button type="submit" className="btn-primary form-submit" disabled={loading}>
+              {loading ? "Saving..." : "Add Subject"}
+            </button>
           </form>
         </div>
       </div>

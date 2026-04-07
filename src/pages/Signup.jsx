@@ -1,6 +1,7 @@
 import { useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppContext } from "../context/AppContext";
+import { studentSignup } from "../services/api";
 import "../styles/auth.css";
 
 function Signup() {
@@ -11,22 +12,24 @@ function Signup() {
     email: "",
     password: "",
     confirmPassword: "",
+    contact: "",
   });
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSignup = (e) => {
+  const handleSignup = async (e) => {
     e.preventDefault();
     setError("");
     setSuccess("");
 
     // Validation
-    if (!formData.name || !formData.email || !formData.password) {
+    if (!formData.name || !formData.email || !formData.password || !formData.contact) {
       setError("Please fill in all fields");
       return;
     }
@@ -41,33 +44,31 @@ function Signup() {
       return;
     }
 
-    // Check if email already exists
-    const students = JSON.parse(localStorage.getItem("students")) || [];
-    if (students.some((s) => s.email === formData.email)) {
-      setError("Email already registered");
-      return;
-    }
+    setLoading(true);
 
-    // Create new student account
-    const newStudent = {
-      id: Date.now(),
+    // Try to registervia API
+    const signupData = {
       name: formData.name,
       email: formData.email,
       password: formData.password,
-      marks: [],
-      createdAt: new Date().toISOString(),
+      contact: formData.contact,
     };
 
-    students.push(newStudent);
-    localStorage.setItem("students", JSON.stringify(students));
+    const result = await studentSignup(signupData);
+    
+    if (result.success) {
+      // Auto login after successful signup
+      login({ ...result.user, userType: "student" });
+      setSuccess("Account created successfully! Redirecting...");
 
-    // Auto login
-    login({ ...newStudent, userType: "student" });
-    setSuccess("Account created successfully! Redirecting...");
-
-    setTimeout(() => {
-      navigate("/student/dashboard");
-    }, 1500);
+      setTimeout(() => {
+        navigate("/student/dashboard");
+      }, 1500);
+    } else {
+      setError(result.error || "Failed to create account. Please try again.");
+    }
+    
+    setLoading(false);
   };
 
   return (
@@ -109,6 +110,19 @@ function Signup() {
           </div>
 
           <div className="form-group">
+            <label htmlFor="contact">Contact Number</label>
+            <input
+              id="contact"
+              type="tel"
+              name="contact"
+              placeholder="Enter your contact number"
+              value={formData.contact}
+              onChange={handleChange}
+              required
+            />
+          </div>
+
+          <div className="form-group">
             <label htmlFor="password">Password</label>
             <input
               id="password"
@@ -134,8 +148,8 @@ function Signup() {
             />
           </div>
 
-          <button type="submit" className="btn-primary auth-btn">
-            Create Account
+          <button type="submit" className="btn-primary auth-btn" disabled={loading}>
+            {loading ? "Creating Account..." : "Create Account"}
           </button>
         </form>
 
