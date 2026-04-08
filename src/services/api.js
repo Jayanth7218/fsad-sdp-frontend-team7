@@ -310,8 +310,13 @@ export const getMarksBySubject = async (subjectId) => {
       },
     });
 
+    if (response.status === 204) {
+      return { success: true, data: [] };
+    }
+
     if (!response.ok) {
-      throw new Error(`Failed to fetch marks: ${response.statusText}`);
+      const errorText = await response.text();
+      throw new Error(`Failed to fetch marks: ${response.status} ${response.statusText} ${errorText}`);
     }
 
     const data = await response.json();
