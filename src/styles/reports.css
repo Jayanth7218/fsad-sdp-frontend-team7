@@ -213,3 +213,31 @@ tbody tr:hover {
     font-size: 0.8rem;
   }
 }
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  .report-card,
+  .report-card * {
+    visibility: visible;
+  }
+
+  .report-card {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    box-shadow: none;
+    border: none;
+    background: transparent;
+  }
+
+  .print-report-btn,
+  .reports-selector,
+  .reports-header,
+  .empty-state {
+    display: none !important;
+  }
+}

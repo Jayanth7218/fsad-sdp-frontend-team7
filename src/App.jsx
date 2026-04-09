@@ -22,6 +22,7 @@ import Reports from "./pages/admin/Reports";
 import StudentNavbar from "./components/StudentNavbar";
 import StudentDashboard from "./pages/student/StudentDashboard";
 import StudentMarks from "./pages/student/StudentMarks";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 // Protected Route Component
 function ProtectedRoute({ children, userType }) {
@@ -117,7 +118,9 @@ function App() {
           path="/lecturer/marks"
           element={
             <ProtectedRoute userType="lecturer">
-              <StudentMarksPage />
+              <ErrorBoundary>
+                <StudentMarksPage />
+              </ErrorBoundary>
             </ProtectedRoute>
           }
         />

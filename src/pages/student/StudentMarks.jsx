@@ -71,6 +71,7 @@ function StudentMarks() {
                   <th style={{ padding: "1rem", textAlign: "center" }}>Marks</th>
                   <th style={{ padding: "1rem", textAlign: "center" }}>Grade</th>
                   <th style={{ padding: "1rem", textAlign: "center" }}>Status</th>
+                  <th style={{ padding: "1rem", textAlign: "center" }}>Suggestion</th>
                 </tr>
               </thead>
               <tbody>
@@ -107,6 +108,9 @@ function StudentMarks() {
                         }}>
                           {status}
                         </span>
+                      </td>
+                      <td style={{ padding: "1rem", textAlign: "center", color: mark.improvementSuggestion ? "#1e40af" : "#6b7280", fontStyle: mark.improvementSuggestion ? "normal" : "italic" }}>
+                        {mark.improvementSuggestion || "No Suggestion"}
                       </td>
                     </tr>
                   );
