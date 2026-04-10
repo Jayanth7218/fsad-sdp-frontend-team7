@@ -18,7 +18,7 @@ function StudentDetails() {
     if (result.success) {
       setStudents(result.data);
     } else {
-      setError(result.error  "Failed to fetch students");
+      setError(result.error || "Failed to fetch students");
     }
     setLoading(false);
   };
@@ -31,10 +31,10 @@ function StudentDetails() {
     setLoading(true);
     const result = await deleteStudent(id);
     if (result.success) {
-      setSuccess(result.message  "Student deleted successfully");
+      setSuccess(result.message || "Student deleted successfully");
       fetchStudents();
     } else {
-      setError(result.error  "Failed to delete student");
+      setError(result.error || "Failed to delete student");
     }
     setLoading(false);
   };
@@ -61,7 +61,14 @@ function StudentDetails() {
                   <tr key={s.id}>
                     <td>{s.name}</td>
                     <td>{s.email}</td>
-                    <td>{s.contact  "N/A"}</td>
+<<<<<<< HEAD
+                    <td>{s.contact || "N/A"}</td>
+>>>>>>> 150dff77ac85fafdf1c10ec4ce675d30c65dadbf
+=======
+                    <td>{s.contact || "N/A"}</td>
+=======
+                    <td>{s.contact || "N/A"}</td>
+>>>>>>> 150dff77ac85fafdf1c10ec4ce675d30c65dadbf
                     <td>
                       <button
                         className="btn-danger"
