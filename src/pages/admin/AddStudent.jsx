@@ -1,102 +1,104 @@
-import { useState, useEffect } from "react";
-import { getAllStudents, deleteStudent } from "../../services/api";
-import "../../styles/forms.css";
+import { useState } from "react";
+import DashboardLayout from "../../layouts/DashboardLayout";
+import { addStudent } from "../../services/adminService";
+import toast, { Toaster } from "react-hot-toast";
 
-function StudentDetails() {
-  const [students, setStudents] = useState([]);
+const AddStudent = () => {
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
 
-  useEffect(() => {
-    fetchStudents();
-  }, []);
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    password: "",
+    contact: "",
+  });
 
-  const fetchStudents = async () => {
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     setLoading(true);
-    const result = await getAllStudents();
-    if (result.success) {
-      setStudents(result.data);
-    } else {
-      setError(result.error || "Failed to fetch students");
-    }
-    setLoading(false);
-  };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this student?")) {
-      return;
-    }
+    try {
+      await addStudent(form);
+      toast.success("Student Added Successfully");
 
-    setLoading(true);
-    const result = await deleteStudent(id);
-    if (result.success) {
-      setSuccess(result.message || "Student deleted successfully");
-      fetchStudents();
-    } else {
-      setError(result.error || "Failed to delete student");
+      setForm({
+        name: "",
+        email: "",
+        password: "",
+        contact: "",
+      });
+    } catch (err) {
+      console.error(err);
+      toast.error("Error adding student");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
-    <div className="container">
-      <div className="page-grid">
-        <div className="listing-card card">
-          <h2>Students</h2>
-          {error && <div className="error-message">{error}</div>}
-          {success && <div className="success-message">{success}</div>}
-          {students.length > 0 ? (
-            <table className="list-table">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Email</th>
-                  <th>Contact</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {students.map((s) => (
-                  <tr key={s.id}>
-                    <td>{s.name}</td>
-                    <td>{s.email}</td>
-<<<<<<< HEAD
-                    <td>{s.contact || "N/A"}</td>
->>>>>>> 150dff77ac85fafdf1c10ec4ce675d30c65dadbf
-=======
-                    <td>{s.contact || "N/A"}</td>
-=======
-                    <td>{s.contact || "N/A"}</td>
->>>>>>> 150dff77ac85fafdf1c10ec4ce675d30c65dadbf
-                    <td>
-                      <button
-                        className="btn-danger"
-                        onClick={() => handleDelete(s.id)}
-                        disabled={loading}
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : (
-            <p>{loading ? "Loading students..." : "No students registered yet."}</p>
-          )}
-        </div>
-        <div className="form-wrapper card">
-          <h2 className="form-title">📚 Students Information</h2>
-          <p>Students can register themselves through the signup page.</p>
-          <p>You can view and manage registered students in the list above.</p>
-          <button onClick={fetchStudents} className="btn-primary form-submit" disabled={loading}>
-            {loading ? "Refreshing..." : "Refresh Student List"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
+    <DashboardLayout>
+      <Toaster />
 
-export default StudentDetails;
+      <h1 className="text-2xl font-bold mb-6">Add Student</h1>
+
+      <form
+        onSubmit={handleSubmit}
+        className="bg-white p-6 rounded-xl shadow grid grid-cols-2 gap-4"
+      >
+        <input
+          type="text"
+          placeholder="Name"
+          value={form.name}
+          onChange={(e) =>
+            setForm({ ...form, name: e.target.value })
+          }
+          className="p-3 border rounded-lg"
+          required
+        />
+
+        <input
+          type="email"
+          placeholder="Email"
+          value={form.email}
+          onChange={(e) =>
+            setForm({ ...form, email: e.target.value })
+          }
+          className="p-3 border rounded-lg"
+          required
+        />
+
+        <input
+          type="password"
+          placeholder="Password"
+          value={form.password}
+          onChange={(e) =>
+            setForm({ ...form, password: e.target.value })
+          }
+          className="p-3 border rounded-lg"
+          required
+        />
+
+        <input
+          type="text"
+          placeholder="Contact"
+          value={form.contact}
+          onChange={(e) =>
+            setForm({ ...form, contact: e.target.value })
+          }
+          className="p-3 border rounded-lg"
+          required
+        />
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="col-span-2 bg-blue-600 text-white p-3 rounded-lg hover:bg-blue-700 transition"
+        >
+          {loading ? "Adding..." : "Add Student"}
+        </button>
+      </form>
+    </DashboardLayout>
+  );
+};
+
+export default AddStudent;
